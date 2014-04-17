@@ -7,8 +7,8 @@ import common.DFileID;
 
 public abstract class DFS {
 		
-	private boolean _format;
-	private String _volName;
+	private boolean format;
+	private String volName;
 
 	/* 
 	 * @volName: Explicitly overwrite volume name
@@ -16,8 +16,8 @@ public abstract class DFS {
 	 */
 
 	DFS(String volName, boolean format) {
-		_volName = volName;
-		_format = format;
+		this.volName = volName;
+		this.format = format;
 	}
 
 	DFS(boolean format) {
