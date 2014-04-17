@@ -11,6 +11,10 @@ public class DFS {
 	public DFS(){
 		
 	}
+	
+	public void init(){
+		
+	}
 
 	/* creates a new dfile and returns the DFileID */ 
 	public DFileID createDFile(){
