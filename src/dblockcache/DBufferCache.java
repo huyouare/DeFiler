@@ -4,14 +4,14 @@ import common.Constants;
 
 public abstract class DBufferCache {
 	
-	private int _cacheSize;
+	private int cacheSize;
 	
 	/*
 	 * Constructor: allocates a cacheSize number of cache blocks, each
 	 * containing BLOCK-size bytes data, in memory
 	 */
 	public DBufferCache(int cacheSize) {
-		_cacheSize = cacheSize * Constants.BLOCK_SIZE;
+		this.cacheSize = cacheSize * Constants.BLOCK_SIZE;
 	}
 	
 	/*

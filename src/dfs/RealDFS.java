@@ -16,8 +16,8 @@ public class RealDFS extends DFS {
 	@Override
 	public void init() {
 		// TODO Auto-generated method stub
-		availableFileIDs= new LinkedList<Integer>();
-		for (int i=1; i<513; i++){
+		availableFileIDs = new LinkedList<Integer>();
+		for (int i=512; i>0; i--){
 			availableFileIDs.add(i);
 		}
 	}
@@ -25,9 +25,9 @@ public class RealDFS extends DFS {
 	@Override
 	public DFileID createDFile() {
 		// TODO Auto-generated method stub
-		int fileID= availableFileIDs.remove();
-		myDBufferCache.getBlock(fileID);
-		return null;
+		DFileID dfid = new DFileID(availableFileIDs.remove());
+		myDBufferCache.getBlock(dfid.getID());
+		return dfid;
 	}
 
 	@Override

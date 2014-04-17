@@ -5,7 +5,7 @@ public class DFileID {
 
 	private int dFID;
 
-	DFileID(int dFID) {
+	public DFileID(int dFID) {
 		this.dFID = dFID;
 	}
 
