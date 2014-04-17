@@ -96,7 +96,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 	}
 
 	/*
-	 * Reads the buffer associated with DBuffer to the underlying
+	 * Reads to the buffer associated with DBuffer from the underlying
 	 * device/disk/volume
 	 */
 	protected int readBlock(DBuffer buf) throws IOException {
@@ -107,6 +107,7 @@ public abstract class VirtualDisk implements IVirtualDisk {
 		}
 		file.seek(seekLen);
 		return file.read(buf.getBuffer(), 0, Constants.BLOCK_SIZE);
+		//Writes into buf.getBuffer()
 	}
 
 	/*

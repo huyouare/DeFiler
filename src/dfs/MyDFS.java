@@ -7,7 +7,7 @@ import java.util.Queue;
 import common.DFileID;
 import dblockcache.DBufferCache;
 
-public class RealDFS extends DFS {
+public class MyDFS extends DFS {
 	
 	Queue<Integer> availableFileIDs;
 	DBufferCache myDBufferCache;
@@ -37,8 +37,13 @@ public class RealDFS extends DFS {
 	}
 
 	@Override
+	/*
+	 * reads the file dfile named by DFileID into the buffer starting from the
+	 * buffer offset startOffset; at most count bytes are transferred
+	 */
 	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) {
-		// TODO Auto-generated method stub
+		//find dBuffer based on the dFID
+		//read from DBuffer into buffer
 		return 0;
 	}
 
