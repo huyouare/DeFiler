@@ -35,15 +35,15 @@ public class MyDBuffer extends DBuffer {
 	@Override
 	/* Check whether the buffer has valid data */ 
 	public boolean checkValid() {
-		// TODO Auto-generated method stub
-		return false;
+		return this.buffer==null;
 	}
 
 	@Override
 	/* Wait until the buffer has valid data, i.e., wait for fetch to complete */
 	public boolean waitValid() {
-		// TODO Auto-generated method stub
-		return false;
+		while(!ioComplete){
+		}
+		return true;
 	}
 
 	@Override
