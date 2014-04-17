@@ -29,8 +29,7 @@ public class MyDBuffer extends DBuffer {
 	@Override
 	/* Start an asynchronous write of buffer contents to block on volume */
 	public void startPush() {
-		// TODO Auto-generated method stub
-
+		//push dirty blocks
 	}
 
 	@Override

@@ -20,6 +20,7 @@ public class MyDFS extends DFS {
 		for (int i=512; i>0; i--){
 			availableFileIDs.add(i);
 		}
+		
 	}
 
 	@Override
