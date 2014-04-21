@@ -18,9 +18,9 @@ public class MyDBufferCache extends DBufferCache {
 	 * Constructor: allocates a cacheSize number of cache blocks, each
 	 * containing BLOCK-size bytes data, in memory
 	 */
-	public MyDBufferCache(int cacheSize, MyVirtualDisk vd) {
+	public MyDBufferCache(int cacheSize, VirtualDisk myVD) {
 		super(cacheSize);
-		myVD = vd;
+		myVD = myVD;
 	}
 
 	@Override
@@ -31,25 +31,33 @@ public class MyDBufferCache extends DBufferCache {
 	 */
 	public DBuffer getBlock(int blockID) {
 		//find it in the cache, otherwise fetch
+		DBuffer dbuffer;
 		if(dBufferMap.containsKey(blockID)){
-			return dBufferMap.get(blockID);
+			dbuffer = dBufferMap.get(blockID);
 		}
 		else{
 			if(blockIDQueue.size()==this.cacheSize){
 				int id = blockIDQueue.remove();
 				dBufferMap.remove(id);
 			}
-			DBuffer dbuffer = new MyDBuffer(blockID, myVD);
+			dbuffer = new MyDBuffer(blockID, myVD);
 			dbuffer.startFetch();
 			dBufferMap.put(blockID, dbuffer);
 			blockIDQueue.add(blockID);
-			return dbuffer;
 		}
+		synchronized(dbuffer){
+			//dbuffer.setHold();
+		}
+		return dbuffer;
 	}
 
 	@Override
 	/* Release the buffer so that others waiting on it can use it */
 	public void releaseBlock(DBuffer buf) {
+//		synchronized(buf){
+//			buf.removeHold();
+//			notifyAll();
+//		}
 		dBufferMap.remove(buf.getBlockID());
 		blockIDQueue.remove(buf.getBlockID());
 	}

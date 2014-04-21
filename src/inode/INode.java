@@ -7,21 +7,25 @@ import common.DFileID;
 
 public class INode {
 	
-	private int fileSize;
-	private ArrayList<Integer> blockMap;
-	private DFileID dfid;
+	public int fileSize;
+	public ArrayList<Integer> blockMap;
+	public DFileID dfid;
 	
 	public INode(int size, DFileID fileID){
 		this.setDFileID(fileID);
-		this.setFileSize(size);
+		this.setSize(size);
 		this.setBlockMap(new ArrayList<Integer>());
 	}
 
-	public int getFileSize() {
+	public void addBlock(int blockID){
+		this.blockMap.add(blockID);
+	}
+	
+	public int getSize() {
 		return fileSize;
 	}
 
-	public void setFileSize(int fileSize) {
+	public void setSize(int fileSize) {
 		this.fileSize = fileSize;
 	}
 
