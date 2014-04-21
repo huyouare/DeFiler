@@ -1,5 +1,9 @@
 package dfs;
 
+import inode.INode;
+import common.Constants;
+
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -11,7 +15,8 @@ public class MyDFS extends DFS {
 	
 	Queue<Integer> availableFileIDs;
 	DBufferCache myDBufferCache;
-	
+	ArrayList<INode> iNodeList;
+	int numBlocks;
 	
 	@Override
 	public void init() {
@@ -20,6 +25,9 @@ public class MyDFS extends DFS {
 		for (int i=512; i>0; i--){
 			availableFileIDs.add(i);
 		}
+		iNodeList= new ArrayList<INode>();
+		int numINodes=Constants.MAX_DFILES;
+		numBlocks=Constants.NUM_OF_BLOCKS;
 		
 	}
 
@@ -28,6 +36,7 @@ public class MyDFS extends DFS {
 		// TODO Auto-generated method stub
 		DFileID dfid = new DFileID(availableFileIDs.remove());
 		myDBufferCache.getBlock(dfid.getID());
+		iNodeList.add(new INode(0, dfid));
 		return dfid;
 	}
 
