@@ -27,9 +27,7 @@ public class MyVirtualDisk extends VirtualDisk{
 	
 	class Reader implements Runnable{
 
-		Thread t;
 		DBuffer myBuf;
-//		VirtualDisk myVDisk;
 
 		Reader(DBuffer dbuf){
 			myBuf = dbuf;
@@ -48,10 +46,8 @@ public class MyVirtualDisk extends VirtualDisk{
 	}
 	
 	class Writer implements Runnable{
-
-		Thread t;
+		
 		DBuffer myBuf;
-//		VirtualDisk myVDisk;
 
 		Writer(DBuffer dbuf){
 			myBuf = dbuf;
