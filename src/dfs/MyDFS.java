@@ -17,6 +17,7 @@ public class MyDFS extends DFS {
 	DBufferCache myDBufferCache;
 	ArrayList<INode> iNodeList;
 	int numBlocks;
+	ArrayList<Integer> vdf;
 	
 	@Override
 	public void init() {
@@ -26,8 +27,10 @@ public class MyDFS extends DFS {
 			availableFileIDs.add(i);
 		}
 		iNodeList= new ArrayList<INode>();
-		int numINodes=Constants.MAX_DFILES;
-		numBlocks=Constants.NUM_OF_BLOCKS;
+		vdf= new ArrayList<Integer>();
+		
+		
+		
 		
 	}
 
