@@ -28,13 +28,14 @@ public class MyDBuffer extends DBuffer {
 	@Override
 	/* Start an asynchronous fetch of associated block from the volume */
 	public void startFetch() {
+		ioComplete = false;
 		myVD.startRequest(this, DiskOperationType.READ);
-		isValid = true;
 	}
 
 	@Override
 	/* Start an asynchronous write of buffer contents to block on volume */
 	public void startPush() {
+		ioComplete = false;
 		myVD.startRequest(this, DiskOperationType.WRITE);
 	}
 
@@ -46,8 +47,14 @@ public class MyDBuffer extends DBuffer {
 
 	@Override
 	/* Wait until the buffer has valid data, i.e., wait for fetch to complete */
-	public boolean waitValid() {
-		while(!isValid);
+	public synchronized boolean waitValid() {
+		while(!isValid){
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 		return true;
 	}
 
@@ -59,8 +66,14 @@ public class MyDBuffer extends DBuffer {
 
 	@Override
 	/* Wait until the buffer is clean, i.e., wait until a push operation completes */
-	public boolean waitClean() {
-		while(!isClean);
+	public synchronized boolean waitClean() {
+		while(!isClean){
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 		return true;
 	}
 
@@ -80,7 +93,6 @@ public class MyDBuffer extends DBuffer {
 	public int read(byte[] buffer, int startOffset, int count) {
 		//Check that DBuffer has valid copy of the data
 		waitClean();
-		ioComplete = false;
 		int byteCount = 0;
 		if(startOffset<-1)
 			return -1;
@@ -103,7 +115,6 @@ public class MyDBuffer extends DBuffer {
 	 * written.
 	 */
 	public int write(byte[] buffer, int startOffset, int count) {
-		ioComplete = false;
 		int byteCount = 0;
 		if(startOffset<-1)
 			return -1;
@@ -115,15 +126,23 @@ public class MyDBuffer extends DBuffer {
 			this.buffer[i] = buffer[i+startOffset];
 			byteCount++;
 		}
-		isClean = false;
-		isValid = true;
+		synchronized(this){
+			isClean = false;
+			isValid = true;
+			notifyAll();
+		}
 		return byteCount;
 	}
 
 	@Override
 	/* An upcall from VirtualDisk layer to inform the completion of an IO operation */
 	public void ioComplete() {
-		ioComplete = true;
+		synchronized(this){
+			ioComplete = true;
+			isValid = true;
+			isClean = true;
+			notifyAll();
+		}
 	}
 
 	@Override
