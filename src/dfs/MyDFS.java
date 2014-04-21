@@ -4,6 +4,7 @@ import inode.INode;
 import common.Constants;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -12,26 +13,31 @@ import common.DFileID;
 import dblockcache.DBufferCache;
 
 public class MyDFS extends DFS {
-	
+
 	Queue<Integer> availableFileIDs;
 	DBufferCache myDBufferCache;
 	ArrayList<INode> iNodeList;
 	int numBlocks;
-	ArrayList<Integer> vdf;
-	
+	int vdf[] ;
+
 	@Override
 	public void init() {
 		// TODO Auto-generated method stub
 		availableFileIDs = new LinkedList<Integer>();
-		for (int i=512; i>0; i--){
+		for (int i=1; i<512; i++){
 			availableFileIDs.add(i);
 		}
 		iNodeList= new ArrayList<INode>();
-		vdf= new ArrayList<Integer>();
-		
-		
-		
-		
+		int iNodesPerBlock=Constants.BLOCK_SIZE/Constants.INODE_SIZE;
+		int numINodeBlocks= Constants.MAX_DFILES/iNodesPerBlock;
+		int numFileBlocks= Constants.NUM_OF_BLOCKS-1-numINodeBlocks;
+		vdf = new int[];
+		for (int j=0; j<numINodeBlocks; j++){
+			vdf[j]= 0;
+		}
+
+
+
 	}
 
 	@Override
@@ -46,7 +52,13 @@ public class MyDFS extends DFS {
 	@Override
 	public void destroyDFile(DFileID dFID) {
 		// TODO Auto-generated method stub
-		
+		for (INode currINode: iNodeList){
+			if (currINode.getDFileID() == dFID){
+				for (int item: currINode.getBlockMap()){
+					vdf.put(key, 0);
+				}
+			}
+		}
 	}
 
 	@Override
@@ -81,7 +93,7 @@ public class MyDFS extends DFS {
 	@Override
 	public void sync() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 }
