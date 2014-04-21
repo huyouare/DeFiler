@@ -5,17 +5,22 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import virtualdisk.MyVirtualDisk;
+import virtualdisk.VirtualDisk;
+
 public class MyDBufferCache extends DBufferCache {
 	
 	HashMap<Integer, DBuffer> dBufferMap = new HashMap<Integer, DBuffer>(); 
 	Queue<Integer> blockIDQueue = new LinkedList<Integer>();
+	MyVirtualDisk myVD;
 	
 	/*
 	 * Constructor: allocates a cacheSize number of cache blocks, each
 	 * containing BLOCK-size bytes data, in memory
 	 */
-	public MyDBufferCache(int cacheSize) {
+	public MyDBufferCache(int cacheSize, MyVirtualDisk vd) {
 		super(cacheSize);
+		myVD = vd;
 	}
 
 	@Override
@@ -34,7 +39,7 @@ public class MyDBufferCache extends DBufferCache {
 				int id = blockIDQueue.remove();
 				dBufferMap.remove(id);
 			}
-			DBuffer dbuffer = new MyDBuffer(blockID);
+			DBuffer dbuffer = new MyDBuffer(blockID, myVD);
 			dbuffer.startFetch();
 			dBufferMap.put(blockID, dbuffer);
 			blockIDQueue.add(blockID);
@@ -45,7 +50,6 @@ public class MyDBufferCache extends DBufferCache {
 	@Override
 	/* Release the buffer so that others waiting on it can use it */
 	public void releaseBlock(DBuffer buf) {
-//		Queue<Integer> tempQueue = new LinkedList<Integer>();
 		dBufferMap.remove(buf.getBlockID());
 		blockIDQueue.remove(buf.getBlockID());
 	}
@@ -56,9 +60,22 @@ public class MyDBufferCache extends DBufferCache {
 	 * The sync() method should maintain clean block copies in DBufferCache.
 	 */
 	public void sync() {
-		//for all blocks
-		//see if valid
-		//update
+		ArrayList<DBuffer> dBufferList = new ArrayList<DBuffer>();
+		for(int key : dBufferMap.keySet()){
+			DBuffer dBuffer = dBufferMap.get(key);
+			if(dBuffer.checkValid()){
+				if(!dBuffer.checkClean()){
+					dBuffer.startPush();
+					dBufferList.add(dBuffer);
+				}
+			}
+		}
+		while(!dBufferList.isEmpty()){
+			for(DBuffer dBuffer : dBufferList){
+				if(!dBuffer.isBusy())
+					dBufferList.remove(dBuffer);
+			}
+		}
 	}
 
 }

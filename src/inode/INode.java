@@ -1,18 +1,43 @@
 package inode;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import common.DFileID;
 
 public class INode {
 	
-	public int fileSize;
-	public HashMap<Integer, Integer> blockMap;
-	public DFileID dfid;
+	private int fileSize;
+	private ArrayList<Integer> blockMap;
+	private DFileID dfid;
 	
-	public INode(int mySize, DFileID myFileID){
-		this.dfid=myFileID;
-		this.fileSize=mySize;
-		this.blockMap= new HashMap<Integer, Integer>();
+	public INode(int size, DFileID fileID){
+		this.setDFileID(fileID);
+		this.setFileSize(size);
+		this.setBlockMap(new ArrayList<Integer>());
+	}
+
+	public int getFileSize() {
+		return fileSize;
+	}
+
+	public void setFileSize(int fileSize) {
+		this.fileSize = fileSize;
+	}
+
+	public ArrayList<Integer> getBlockMap() {
+		return blockMap;
+	}
+
+	public void setBlockMap(ArrayList<Integer> blockMap) {
+		this.blockMap = blockMap;
+	}
+
+	public DFileID getDFileID() {
+		return dfid;
+	}
+
+	public void setDFileID(DFileID dfid) {
+		this.dfid = dfid;
 	}
 }

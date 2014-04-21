@@ -13,8 +13,7 @@ public class MyVirtualDisk extends VirtualDisk{
 	}
 
 	@Override
-	public void startRequest(DBuffer buf, DiskOperationType operation)
-			throws IllegalArgumentException, IOException {
+	public void startRequest(DBuffer buf, DiskOperationType operation){
 		if(operation == DiskOperationType.READ){	
 			Reader r = new Reader(buf);
 			(new Thread(r)).start();
