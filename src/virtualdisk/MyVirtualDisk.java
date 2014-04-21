@@ -1,11 +1,23 @@
 package virtualdisk;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Queue;
+
 import common.Constants.DiskOperationType;
 
 import dblockcache.DBuffer;
 
-public class MyVirtualDisk extends VirtualDisk{
+public class MyVirtualDisk extends VirtualDisk implements Runnable{
+	private Queue<Request> requestQueue;
+	
+	class Request{
+		DBuffer buf;
+		DiskOperationType operation;
+		Request(DBuffer buf, DiskOperationType operation){
+			this.buf = buf;
+			this.operation = operation;
+		}
+	}
 
 	public MyVirtualDisk(String volName, boolean format) throws FileNotFoundException,
 	IOException{
@@ -14,56 +26,48 @@ public class MyVirtualDisk extends VirtualDisk{
 
 	@Override
 	public void startRequest(DBuffer buf, DiskOperationType operation){
-		if(operation == DiskOperationType.READ){	
-			Reader r = new Reader(buf);
-			(new Thread(r)).start();
-		}
-		else{
-			Writer w = new Writer(buf);
-			(new Thread(w)).start();
+		synchronized(requestQueue){
+			Request r = new Request(buf, operation);
+			requestQueue.add(r);
+			requestQueue.notifyAll();
 		}
 	}
 	
-	
-	class Reader implements Runnable{
-
-		DBuffer myBuf;
-
-		Reader(DBuffer dbuf){
-			myBuf = dbuf;
-		}
-		public void run() {
-			System.out.println("Running ");
+	public void processRequest(Request r){
+		if(r.operation == DiskOperationType.READ){	
 			try {
-				readBlock(myBuf);
-				myBuf.ioComplete();
-			}
-			catch (IOException e) {
+				readBlock(r.buf);
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			System.out.println("Thread exiting.");
+			r.buf.ioComplete();
+		}
+		else if(r.operation == DiskOperationType.WRITE){
+			try {
+				writeBlock(r.buf);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			r.buf.ioComplete();
 		}
 	}
-	
-	class Writer implements Runnable{
-		
-		DBuffer myBuf;
 
-		Writer(DBuffer dbuf){
-			myBuf = dbuf;
-		}
-		public void run() {
-			System.out.println("Running ");
-			try {
-				writeBlock(myBuf);
-				myBuf.ioComplete();
+	@Override
+	public void run() {
+		synchronized(requestQueue){
+			while(true){
+				while(requestQueue.isEmpty()){
+					try {
+						wait();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				Request r = requestQueue.poll();
+				if(r==null) continue;
+				processRequest(r);
 			}
-			catch (IOException e) {
-				e.printStackTrace();
-			}
-			System.out.println("Thread exiting.");
 		}
-		
 	}
 
 }
