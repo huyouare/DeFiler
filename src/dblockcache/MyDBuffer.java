@@ -27,14 +27,14 @@ public class MyDBuffer extends DBuffer {
 	
 	@Override
 	/* Start an asynchronous fetch of associated block from the volume */
-	public void startFetch() {
+	public synchronized void startFetch() {
 		ioComplete = false;
 		myVD.startRequest(this, DiskOperationType.READ);
 	}
 
 	@Override
 	/* Start an asynchronous write of buffer contents to block on volume */
-	public void startPush() {
+	public synchronized void startPush() {
 		ioComplete = false;
 		myVD.startRequest(this, DiskOperationType.WRITE);
 	}
@@ -90,7 +90,7 @@ public class MyDBuffer extends DBuffer {
 	 * count are for the buffer array, not the DBuffer. Upon an error, it should
 	 * return -1, otherwise return number of bytes read.
 	 */
-	public int read(byte[] buffer, int startOffset, int count) {
+	public synchronized int read(byte[] buffer, int startOffset, int count) {
 		//Check that DBuffer has valid copy of the data
 		waitClean();
 		int byteCount = 0;
@@ -114,7 +114,7 @@ public class MyDBuffer extends DBuffer {
 	 * Upon an error, it should return -1, otherwise return number of bytes
 	 * written.
 	 */
-	public int write(byte[] buffer, int startOffset, int count) {
+	public synchronized int write(byte[] buffer, int startOffset, int count) {
 		int byteCount = 0;
 		if(startOffset<-1)
 			return -1;

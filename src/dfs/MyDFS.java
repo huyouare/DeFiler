@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 
 import virtualdisk.MyVirtualDisk;
 import virtualdisk.VirtualDisk;
@@ -23,58 +24,59 @@ import dblockcache.MyDBufferCache;
 public class MyDFS extends DFS {
 
 	Queue<Integer> availableFileIDs;
+	Set<Integer> allocFileIDs;
 	DBufferCache myDBufferCache;
-//	ArrayList<INode> iNodeList;
 	
-	HashMap<Integer, INode> fileMap;
+	HashMap<Integer, INode> fileMap; //FileIDs
 	VirtualDisk myVD;
-	boolean[] freeList;
+	boolean[] freeList; //Blocks 
 	
 	private int numBlocks;
 	private int numINodeBlocks;
 	private int numFileBlocks;
+	private int iNodesPerBlock;
 	
 	public int getNextFree(){
-		for(int i=numINodeBlocks; i<freeList.length; i++){
-			if(freeList[i]==true){
-				freeList[i] = false;
-				return i;
+		synchronized(freeList){
+			for(int i=numINodeBlocks; i<freeList.length; i++){
+				if(freeList[i]==true){
+					freeList[i] = false;
+					return i;
+				}
 			}
+			return -1;
 		}
-		return -1;
 	}
 
 	@Override
 	public void init() {
-		// TODO Auto-generated method stub
 		availableFileIDs = new LinkedList<Integer>();
 		for (int i=1; i<512; i++){
 			availableFileIDs.add(i);
 		}
+		
 		try {
-			myVD = new MyVirtualDisk("test", true);
+			myVD = new MyVirtualDisk();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
 		myDBufferCache = new MyDBufferCache(Constants.NUM_OF_CACHE_BLOCKS*Constants.BLOCK_SIZE, myVD);
-//		iNodeList = new ArrayList<INode>();
-		int iNodesPerBlock = Constants.BLOCK_SIZE/Constants.INODE_SIZE;
+
+		iNodesPerBlock = Constants.BLOCK_SIZE/Constants.INODE_SIZE;
 		numINodeBlocks = Constants.MAX_DFILES/iNodesPerBlock;
 		numFileBlocks = Constants.NUM_OF_BLOCKS-1-numINodeBlocks;
 		
 		freeList = new boolean[1 + numINodeBlocks + numFileBlocks];
+		
 		Arrays.fill(freeList, Boolean.TRUE);
 		for(int i=0; i<numINodeBlocks+1; i++){
 			freeList[i] = false;
 		}
 		
 		fileMap = new HashMap<Integer, INode>();
-//		for(int i=1; i<numINodeBlocks+1; i++){
-//			DBuffer buffer = myDBufferCache.getBlock(i);
-//		}
-		
 
 	}
 
@@ -96,13 +98,6 @@ public class MyDFS extends DFS {
 
 		//FREE ALL BLOCKS
 		
-//		for (int id : fileMap.keySet()){
-//			if (fileMap.get(id).getDFileID() == dFID){
-//				fileMap.get(id).setBlockMap(new ArrayList<Integer>());
-//				fileMap.remove(id);
-//				//maybe format contents
-//			}
-//		}
 	}
 
 	@Override
@@ -173,7 +168,6 @@ public class MyDFS extends DFS {
 
 	@Override
 	public int sizeDFile(DFileID dFID) {
-		// TODO Auto-generated method stub
 		INode dFile = fileMap.get(dFID.getID());
 		return dFile.getSize();
 	}

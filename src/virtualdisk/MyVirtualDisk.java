@@ -23,6 +23,11 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable{
 	IOException{
 		super(volName, format);
 	}
+	
+	public MyVirtualDisk() throws FileNotFoundException,
+	IOException{
+		super();
+	}
 
 	@Override
 	public void startRequest(DBuffer buf, DiskOperationType operation){
