@@ -20,6 +20,7 @@ import virtualdisk.VirtualDisk;
 import common.DFileID;
 import dblockcache.DBuffer;
 import dblockcache.DBufferCache;
+import dblockcache.MyDBuffer;
 import dblockcache.MyDBufferCache;
 
 public class MyDFS extends DFS {
@@ -37,27 +38,27 @@ public class MyDFS extends DFS {
 	private int numFileBlocks;
 	private int iNodesPerBlock;
 	
-	public MyDFS(){
+	public MyDFS(MyVirtualDisk vd){
 		availableFileIDs = new LinkedList<Integer>();
 		for (int i=1; i<=Constants.MAX_DFILES; i++){
 			availableFileIDs.add(i);
 		}
 		
-		try {
-			myVD = new MyVirtualDisk();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		myVD = vd;
 		
 		myDBufferCache = new MyDBufferCache(Constants.NUM_OF_CACHE_BLOCKS * Constants.BLOCK_SIZE, myVD);
 		System.out.println(myDBufferCache.cacheSize);
 	}
 	
-	public MyDFS(MyVirtualDisk vd){
-		this();
-		myVD = vd;
+	public MyDFS(){
+		MyVirtualDisk vd;
+		try {
+			vd = new MyVirtualDisk();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public int getNextFree(){
@@ -91,10 +92,7 @@ public class MyDFS extends DFS {
 	}
 	
 	public void checkDisk(){
-		//Check sizes of inodes
-		//Check valid blockIDs
-		//Check for collisions
-		
+
 		boolean[] blockIDFound = new boolean[Constants.NUM_OF_BLOCKS];
 		
 		for(int i=1; i<Constants.MAX_DFILES+1; i++){
@@ -189,6 +187,7 @@ public class MyDFS extends DFS {
 		target.clear();
 		target.get(buffer, 0, target.capacity());
 		System.out.println(buffer.toString());
+		
 	}
 
 	@Override
@@ -213,30 +212,44 @@ public class MyDFS extends DFS {
 	 */
 	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) {
 		synchronized(dFID){
+			System.out.println("Start read: " + dFID.getID());
 			if(startOffset<0)
 				return -1;
 			if(dFID==null) return -1;
 			if(buffer==null) return -1;
 			System.out.println("DFileID: " + dFID.getID());
 			INode iNode = fileMap.get(dFID.getID());
-			int size = iNode.getSize();
 			if(iNode==null) return -1;
+			int size = iNode.getSize();
 			ArrayList<Integer> blockMap = iNode.getBlockMap();
 			
 			int index = 0;
 			for(int blockID : blockMap){
-				int index2 = 0;
 				DBuffer dBuffer = myDBufferCache.getBlock(blockID);
-				byte[] buffer2 = dBuffer.getBuffer();
-				while(index2<Constants.BLOCK_SIZE && index<count && index<size){
-					buffer[index+startOffset] = buffer2[index2];
-					index++;
-					index2++;
-				}
-				if(index>=count || index>=size)
+				int tempCount = count;
+				if(count>Constants.BLOCK_SIZE) 
+					tempCount = Constants.BLOCK_SIZE;
+				if(index+tempCount>size)
+					tempCount = size-index;
+				dBuffer.read(buffer, index+startOffset, tempCount);
+				index = index + tempCount;
+				count = count - tempCount;
+//				System.out.println(blockID);
+//				byte[] buffer2 = dBuffer.getBuffer();
+//				while(index2<Constants.BLOCK_SIZE && index<count && index<size){
+//					buffer[index+startOffset] = buffer2[index2];
+//					index++;
+//					index2++;
+//				}
+				
+				myDBufferCache.releaseBlock(dBuffer);
+				
+				if(count<0 || index>=size)
 					break;
 			}
+			System.out.println("End read: " + dFID.getID());
 			return index;
+			
 		}
 	}
 
@@ -247,6 +260,7 @@ public class MyDFS extends DFS {
 	 */
 	public int write(DFileID dFID, byte[] buffer, int startOffset, int count) {
 		synchronized(dFID){
+			System.out.println("Start write: " + dFID.getID());
 			if(startOffset<0)
 				return -1;
 			if(dFID==null) return -1;
@@ -259,32 +273,52 @@ public class MyDFS extends DFS {
 			
 			int index = 0;
 			for(int blockID : blockMap){
-				int index2 = 0;
+
 				DBuffer dBuffer = myDBufferCache.getBlock(blockID);
-				byte[] buffer2 = dBuffer.getBuffer();
-				while(index2<Constants.BLOCK_SIZE && index<count){
-					buffer2[index2] = buffer[index+startOffset];
-					index++;
-					index2++;
-				}
-				if(index>=count)
+				
+				int tempCount = count;
+				if(count>Constants.BLOCK_SIZE) 
+					tempCount = Constants.BLOCK_SIZE;
+				dBuffer.write(buffer, index+startOffset, tempCount);
+				count = count - tempCount;
+				index = index + tempCount;
+				
+				myDBufferCache.releaseBlock(dBuffer);
+				
+//				byte[] buffer2 = dBuffer.getBuffer();
+//				while(index2<Constants.BLOCK_SIZE && index<count){
+//					buffer2[index2] = buffer[index+startOffset];
+//					index++;
+//					index2++;
+//				}
+//				System.out.println(blockID);
+				if(count>=0)
 					break;
 			}
 			
-			while(index<count){
+			while(count>0){
 				int next = this.getNextFree();
 				if(next==-1) return -1;
 				blockMap.add(next);
-				int index2 = 0;
+//				int index2 = 0;
 				DBuffer dBuffer = myDBufferCache.getBlock(next);
-				byte[] buffer2 = dBuffer.getBuffer();
-				while(index2<Constants.BLOCK_SIZE && index<count){
-					buffer2[index2] = buffer[index+startOffset];
-					index++;
-					index2++;
-				}	
+//				byte[] buffer2 = dBuffer.getBuffer();
+//				while(index2<Constants.BLOCK_SIZE && index<count){
+//					buffer2[index2] = buffer[index+startOffset];
+//					index++;
+//					index2++;
+//				}	
+				int tempCount = count;
+				if(count>Constants.BLOCK_SIZE) 
+					tempCount = Constants.BLOCK_SIZE;
+				dBuffer.write(buffer, index+startOffset, tempCount);
+				count = count - tempCount;
+				index = index + tempCount;
+				myDBufferCache.releaseBlock(dBuffer);
+//				System.out.println(dBuffer.getBlockID());
 			}
 			iNode.setSize(index);
+			System.out.println("End write: " + dFID.getID());
 			return index;
 		}
 	}

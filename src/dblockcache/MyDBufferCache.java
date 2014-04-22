@@ -33,20 +33,25 @@ public class MyDBufferCache extends DBufferCache {
 	public DBuffer getBlock(int blockID) {
 		//find it in the cache, otherwise fetch
 		DBuffer dbuffer;
-		if(dBufferMap.containsKey(blockID)){
-			dbuffer = dBufferMap.get(blockID);
-		}
-		else{
-			if(blockIDQueue.size()==this.cacheSize){
-				System.out.println(blockIDQueue.size());
-				System.out.println(blockIDQueue.size());
-				int id = blockIDQueue.remove();
-				dBufferMap.remove(id);
+		synchronized(dBufferMap){
+			if(dBufferMap.containsKey(blockID)){
+				dbuffer = dBufferMap.get(blockID);
 			}
-			dbuffer = new MyDBuffer(blockID, myVD);
-			dbuffer.startFetch();
-			dBufferMap.put(blockID, dbuffer);
-			blockIDQueue.add(blockID);
+			else{
+
+				if(blockIDQueue.size()==this.cacheSize){
+
+					int id = blockIDQueue.remove();
+					dBufferMap.remove(id);
+					System.out.println("Evicting " + id);
+				}
+//				System.out.println("Fetching" + blockID);
+				dbuffer = new MyDBuffer(blockID, myVD);
+				dbuffer.startFetch();
+				dBufferMap.put(blockID, dbuffer);
+//				System.out.println("Contains " + blockID + " is " + dBufferMap.containsKey(blockID));
+				blockIDQueue.add(blockID);
+			}
 		}
 		synchronized(dbuffer){
 			dbuffer.setHold();
@@ -58,10 +63,10 @@ public class MyDBufferCache extends DBufferCache {
 	/* Release the buffer so that others waiting on it can use it */
 	public void releaseBlock(DBuffer buf) {
 		synchronized(buf){
-			dBufferMap.remove(buf.getBlockID());
-			blockIDQueue.remove(buf.getBlockID());
+//			dBufferMap.remove(buf.getBlockID());
+//			blockIDQueue.remove(buf.getBlockID());
 			buf.removeHold();
-			notifyAll();
+			buf.notifyAll();
 		}
 	}
 
@@ -72,21 +77,24 @@ public class MyDBufferCache extends DBufferCache {
 	 */
 	public void sync() {
 		ArrayList<DBuffer> dBufferList = new ArrayList<DBuffer>();
-		for(int key : dBufferMap.keySet()){
-			DBuffer dBuffer = dBufferMap.get(key);
-			if(dBuffer.checkValid()){
-				if(!dBuffer.checkClean()){
-					dBuffer.startPush();
-					dBufferList.add(dBuffer);
+			for(int key : dBufferMap.keySet()){
+				DBuffer dBuffer = dBufferMap.get(key);
+				synchronized(dBuffer){
+					if(dBuffer.checkValid()){
+						if(!dBuffer.checkClean()){
+							dBuffer.startPush();
+							dBufferList.add(dBuffer);
+							while(!dBuffer.isBusy()){
+								try {
+									dBuffer.wait();
+								} catch (InterruptedException e) {
+									e.printStackTrace();
+								}
+							}
+						}
+					}
 				}
 			}
-		}
-		while(!dBufferList.isEmpty()){
-			for(DBuffer dBuffer : dBufferList){
-				if(!dBuffer.isBusy())
-					dBufferList.remove(dBuffer);
-			}
-		}
 	}
 
 }

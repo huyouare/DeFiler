@@ -36,14 +36,16 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable{
 	@Override
 	public void startRequest(DBuffer buf, DiskOperationType operation){
 		synchronized(requestQueue){
+			
 			Request r = new Request(buf, operation);
 			while(!requestQueue.offer(r)) 
 				continue;
-			requestQueue.notifyAll();
+			requestQueue.notify();
 		}
 	}
 	
 	public void processRequest(Request r){
+
 		if(r.operation == DiskOperationType.READ){	
 			try {
 				readBlock(r.buf);
@@ -64,18 +66,15 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable{
 
 	@Override
 	public void run() {
-		synchronized(requestQueue){
-			while(true){
-				while(requestQueue.isEmpty()){
-					try {
-						wait();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
+		while(true){
+			synchronized(requestQueue){
+				while(!requestQueue.isEmpty()){
+					Request r = requestQueue.poll();
+					if(r==null) continue;
+					processRequest(r);
 				}
-				Request r = requestQueue.poll();
-				if(r==null) continue;
-				processRequest(r);
+				
+
 			}
 		}
 	}
