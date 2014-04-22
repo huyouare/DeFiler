@@ -7,7 +7,7 @@ import common.DFileID;
 
 public class INode {
 	
-	public int fileSize;
+	public int fileSize; // IN BYTES
 	public ArrayList<Integer> blockMap;
 	public DFileID dfid;
 	

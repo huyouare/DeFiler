@@ -29,7 +29,7 @@ public class MyDFS extends DFS {
 	
 	HashMap<Integer, INode> fileMap; //FileIDs
 	MyVirtualDisk myVD;
-	boolean[] freeList; //Blocks 
+	boolean[] freeBlockList; //Blocks 
 	
 	private int numBlocks;
 	private int numINodeBlocks;
@@ -55,10 +55,10 @@ public class MyDFS extends DFS {
 	}
 	
 	public int getNextFree(){
-		synchronized(freeList){
-			for(int i=numINodeBlocks; i<freeList.length; i++){
-				if(freeList[i]==true){
-					freeList[i] = false;
+		synchronized(freeBlockList){
+			for(int i=numINodeBlocks; i<freeBlockList.length; i++){
+				if(freeBlockList[i]==true){
+					freeBlockList[i] = false;
 					return i;
 				}
 			}
@@ -72,33 +72,43 @@ public class MyDFS extends DFS {
 		numINodeBlocks = Constants.MAX_DFILES/iNodesPerBlock;
 		numFileBlocks = Constants.NUM_OF_BLOCKS-1-numINodeBlocks;
 		
-		freeList = new boolean[1 + numINodeBlocks + numFileBlocks];
-		Arrays.fill(freeList, Boolean.TRUE);
-		for(int i=0; i<numINodeBlocks+1; i++){
-			freeList[i] = false;
+		freeBlockList = new boolean[1 + numINodeBlocks + numFileBlocks];
+		synchronized(freeBlockList){
+			Arrays.fill(freeBlockList, Boolean.TRUE);
+			for(int i=0; i<numINodeBlocks+1; i++){
+				freeBlockList[i] = false;
+			}
 		}
-		
 		fileMap = new HashMap<Integer, INode>();
+	}
+	
+	public void checkDFiles(){
+		
 	}
 
 	@Override
 	/* creates a new DFile and returns the DFileID, which is useful to uniquely identify the DFile*/
 	public DFileID createDFile() {
 		DFileID dfid = new DFileID(availableFileIDs.remove());
-		fileMap.put(dfid.getID(), new INode(0, dfid));
+		synchronized(fileMap){
+			fileMap.put(dfid.getID(), new INode(0, dfid));
+		}
 		return dfid;
 	}
 
 	@Override
 	public void destroyDFile(DFileID dFID) {
-		ArrayList<Integer> blockMapItems = fileMap.get(dFID).getBlockMap(); 
-		for (Integer block: blockMapItems){
-			freeList[block]=true;
+		ArrayList<Integer> blockMapItems;
+		synchronized(fileMap){
+			blockMapItems = fileMap.get(dFID).getBlockMap(); 
+			fileMap.remove(dFID.getID());
 		}
-		fileMap.remove(dFID.getID());
-
-		//FREE ALL BLOCKS
-		
+		synchronized(freeBlockList){
+			for (Integer block: blockMapItems){
+				freeBlockList[block]=true;
+			}
+		}
+		availableFileIDs.add(dFID.getID());
 	}
 
 	@Override
@@ -107,28 +117,31 @@ public class MyDFS extends DFS {
 	 * buffer offset startOffset; at most count bytes are transferred
 	 */
 	public int read(DFileID dFID, byte[] buffer, int startOffset, int count) {
-		//find dBuffer based on the dFID
-		//read from DBuffer into buffer
-		if(startOffset<0)
-			return -1;
-		//More corner cases
-		System.out.println("DFileID: " + dFID.getID());
-		INode iNode = fileMap.get(dFID.getID());
-		ArrayList<Integer> blockMap = iNode.getBlockMap();
-		int index = 0;
-		for(int blockID : blockMap){
-			int index2 = 0;
-			DBuffer dBuffer = myDBufferCache.getBlock(blockID);
-			byte[] buffer2 = dBuffer.getBuffer();
-			while(index2<Constants.BLOCK_SIZE && index<count){
-				buffer[index+startOffset] = buffer2[index2];
-				index++;
-				index2++;
+		synchronized(dFID){
+			if(startOffset<0)
+				return -1;
+			if(dFID==null) return -1;
+			if(buffer==null) return -1;
+			System.out.println("DFileID: " + dFID.getID());
+			INode iNode = fileMap.get(dFID.getID());
+			if(iNode==null) return -1;
+			ArrayList<Integer> blockMap = iNode.getBlockMap();
+			
+			int index = 0;
+			for(int blockID : blockMap){
+				int index2 = 0;
+				DBuffer dBuffer = myDBufferCache.getBlock(blockID);
+				byte[] buffer2 = dBuffer.getBuffer();
+				while(index2<Constants.BLOCK_SIZE && index<count){
+					buffer[index+startOffset] = buffer2[index2];
+					index++;
+					index2++;
+				}
+				if(index>count)
+					break;
 			}
-			if(index>count)
-				break;
+			return index;
 		}
-		return index;
 	}
 
 	@Override
@@ -137,42 +150,47 @@ public class MyDFS extends DFS {
 	 * buffer offset startOffset; at most count bytes are transferred
 	 */
 	public int write(DFileID dFID, byte[] buffer, int startOffset, int count) {
-		// TODO Auto-generated method stub
-		if(startOffset<0)
-			return -1;
-		if(dFID==null) return -1;
-		if(!fileMap.containsKey(dFID.getID()))
-			return -1;
-		
-		INode iNode = fileMap.get(dFID.getID());
-		ArrayList<Integer> blockMap = iNode.getBlockMap();
-		int index = 0;
-		for(int blockID : blockMap){
-			int index2 = 0;
-			DBuffer dBuffer = myDBufferCache.getBlock(blockID);
-			byte[] buffer2 = dBuffer.getBuffer();
-			while(index2<Constants.BLOCK_SIZE && index<count){
-				buffer2[index2] = buffer[index+startOffset];
-				index++;
-				index2++;
+		synchronized(dFID){
+			if(startOffset<0)
+				return -1;
+			if(dFID==null) return -1;
+			if(buffer==null) return -1;
+			if(!fileMap.containsKey(dFID.getID()))
+				return -1;
+			INode iNode = fileMap.get(dFID.getID());
+			if(iNode==null) return -1;
+			ArrayList<Integer> blockMap = iNode.getBlockMap();
+			
+			int index = 0;
+			for(int blockID : blockMap){
+				int index2 = 0;
+				DBuffer dBuffer = myDBufferCache.getBlock(blockID);
+				byte[] buffer2 = dBuffer.getBuffer();
+				while(index2<Constants.BLOCK_SIZE && index<count){
+					buffer2[index2] = buffer[index+startOffset];
+					index++;
+					index2++;
+				}
+				if(index>count)
+					break;
 			}
-			if(index>count)
-				break;
-		}
-		while(index<count){
-			int next = this.getNextFree();
-			if(next==-1) return -1;
-			blockMap.add(next);
-			int index2 = 0;
-			DBuffer dBuffer = myDBufferCache.getBlock(next);
-			byte[] buffer2 = dBuffer.getBuffer();
-			while(index2<Constants.BLOCK_SIZE && index<count){
-				buffer2[index2] = buffer[index+startOffset];
-				index++;
-				index2++;
+			
+			while(index<count){
+				int next = this.getNextFree();
+				if(next==-1) return -1;
+				blockMap.add(next);
+				int index2 = 0;
+				DBuffer dBuffer = myDBufferCache.getBlock(next);
+				byte[] buffer2 = dBuffer.getBuffer();
+				while(index2<Constants.BLOCK_SIZE && index<count){
+					buffer2[index2] = buffer[index+startOffset];
+					index++;
+					index2++;
+				}	
 			}
+			iNode.setSize(index);
+			return index;
 		}
-		return index;
 	}
 
 	@Override
