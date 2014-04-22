@@ -14,8 +14,8 @@ import dfs.*;
 
 public class FileMaker implements Runnable{
 
-	OurDFS myFileSystem;
-	public FileMaker(OurDFS fileSystem){
+	MyDFS myFileSystem;
+	public FileMaker(MyDFS fileSystem){
 		myFileSystem = fileSystem;
 	}
 	
