@@ -10,8 +10,8 @@ import dfs.MyDFS;
 import virtualdisk.MyVirtualDisk;
 
 public class AribaTest implements Runnable{
-    DFileID conc;
-
+    
+	DFileID conc;
 	public int number;
 	private MyDFS dfs;
 	private int clientID;
