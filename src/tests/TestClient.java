@@ -1,16 +1,23 @@
 package tests;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+
+import virtualdisk.MyVirtualDisk;
 import dfs.DFS;
 import dfs.MyDFS;
 import common.DFileID;
 
 public class TestClient implements Runnable {
+
     private static final int NUM_WORKERS = 2;
 
     DFS dfiler;
     DFileID conc;
     int clientID;
+    static PrintWriter writer;
 
     /**
      * @param args
@@ -21,6 +28,12 @@ public class TestClient implements Runnable {
         // File to try concurrent access on
         conc = c;
         clientID = client;
+        try{
+        	writer = new PrintWriter("the-file-name.txt");
+        }
+        catch(FileNotFoundException e){
+        	
+        }
     }
 
     private void Print (String op, String mes) {
@@ -31,6 +44,7 @@ public class TestClient implements Runnable {
     private void WriteTest (DFileID f, String t) {
         byte[] data = t.getBytes();
         dfiler.write(f, data, 0, data.length);
+        writer.println(new String(data));
     }
 
     private void WriteLong (DFileID f) {
@@ -50,6 +64,7 @@ public class TestClient implements Runnable {
     private String ReadTest (DFileID f) {
         byte[] read = new byte[100];
         dfiler.read(f, read, 0, 50);
+        writer.println(new String(read));
         // Print("Read bytes", Integer.toString(bytes));
         return new String(read).trim();
     }
@@ -57,6 +72,7 @@ public class TestClient implements Runnable {
     private String ReadTestPartial (DFileID f, int index, int count) {
         byte[] read = new byte[100];
         dfiler.read(f, read, 0, 100);
+        System.out.println("100");
         dfiler.read(f, read, index, count);
         // Print("Read bytes", Integer.toString(bytes));
         return new String(read).trim();
@@ -78,10 +94,13 @@ public class TestClient implements Runnable {
         Print("Writing", "Test Two");
         WriteTest(nf, "TEST TWO");
         Print("Read", ReadTest(nf));
-
+        
+        Print("Writing", "Test Part");
         WriteTest(nf, "TEST PART");
+        System.out.println("WROTE PART");
         Print("Read", ReadTestPartial(nf, 5, 4)); // Should be TEST TEST
-
+        System.out.println("READ PART");
+        
         // Test concurrent access 3 times
         for (int i = 0; i < 3; i++) {
             Print("Write SHUTDOWN " + clientID + "" + i, "Concurrent " + i);
@@ -114,7 +133,21 @@ public class TestClient implements Runnable {
 
     public static void main (String[] args) throws Exception {
         System.out.println("Initializing DFS");
-        MyDFS dfiler = new MyDFS();
+		MyVirtualDisk vd;
+		vd = null;
+		try {
+			vd = new MyVirtualDisk();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		Thread t = new Thread(vd);
+		t.start();
+		
+		MyDFS dfiler = new MyDFS(vd);
         dfiler.init();
 //        dfiler.createDFile();
         System.out.println("Initialized");
@@ -137,5 +170,6 @@ public class TestClient implements Runnable {
         }
         System.out.println("SHUTTING DOWN");
         //dfiler.shutdown();
+        writer.close();
     }
 }

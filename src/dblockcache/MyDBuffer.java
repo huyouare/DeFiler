@@ -96,7 +96,9 @@ public class MyDBuffer extends DBuffer {
 	 */
 	public synchronized int read(byte[] buffer, int startOffset, int count) {
 		//Check that DBuffer has valid copy of the data
-		waitClean();
+//		System.out.println(this.blockID);
+//		System.out.println(this.isValid);
+		waitValid();
 		int byteCount = 0;
 		if(startOffset<-1)
 			return -1;
@@ -119,6 +121,7 @@ public class MyDBuffer extends DBuffer {
 	 * written.
 	 */
 	public synchronized int write(byte[] buffer, int startOffset, int count) {
+		waitValid();
 		int byteCount = 0;
 		if(startOffset<-1)
 			return -1;
