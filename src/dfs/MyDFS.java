@@ -28,13 +28,31 @@ public class MyDFS extends DFS {
 	DBufferCache myDBufferCache;
 	
 	HashMap<Integer, INode> fileMap; //FileIDs
-	VirtualDisk myVD;
+	MyVirtualDisk myVD;
 	boolean[] freeList; //Blocks 
 	
 	private int numBlocks;
 	private int numINodeBlocks;
 	private int numFileBlocks;
 	private int iNodesPerBlock;
+	
+	public MyDFS(){
+		availableFileIDs = new LinkedList<Integer>();
+		for (int i=1; i<512; i++){
+			availableFileIDs.add(i);
+		}
+		
+		try {
+			myVD = new MyVirtualDisk();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		myDBufferCache = new MyDBufferCache(Constants.NUM_OF_CACHE_BLOCKS*Constants.BLOCK_SIZE, myVD);
+		System.out.println(myDBufferCache.cacheSize);
+	}
 	
 	public int getNextFree(){
 		synchronized(freeList){
@@ -50,34 +68,17 @@ public class MyDFS extends DFS {
 
 	@Override
 	public void init() {
-		availableFileIDs = new LinkedList<Integer>();
-		for (int i=1; i<512; i++){
-			availableFileIDs.add(i);
-		}
-		
-		try {
-			myVD = new MyVirtualDisk();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		myDBufferCache = new MyDBufferCache(Constants.NUM_OF_CACHE_BLOCKS*Constants.BLOCK_SIZE, myVD);
-
 		iNodesPerBlock = Constants.BLOCK_SIZE/Constants.INODE_SIZE;
 		numINodeBlocks = Constants.MAX_DFILES/iNodesPerBlock;
 		numFileBlocks = Constants.NUM_OF_BLOCKS-1-numINodeBlocks;
 		
 		freeList = new boolean[1 + numINodeBlocks + numFileBlocks];
-		
 		Arrays.fill(freeList, Boolean.TRUE);
 		for(int i=0; i<numINodeBlocks+1; i++){
 			freeList[i] = false;
 		}
 		
 		fileMap = new HashMap<Integer, INode>();
-
 	}
 
 	@Override
@@ -118,8 +119,10 @@ public class MyDFS extends DFS {
 			int index2 = 0;
 			DBuffer dBuffer = myDBufferCache.getBlock(blockID);
 			byte[] buffer2 = dBuffer.getBuffer();
-			while(index2<Constants.BLOCK_SIZE && index>count){
+			while(index2<Constants.BLOCK_SIZE && index<count){
 				buffer[index+startOffset] = buffer2[index2];
+				index++;
+				index2++;
 			}
 			if(index>count)
 				break;
@@ -136,9 +139,10 @@ public class MyDFS extends DFS {
 		// TODO Auto-generated method stub
 		if(startOffset<0)
 			return -1;
-		//More corner cases
+		if(dFID==null) return -1;
 		if(!fileMap.containsKey(dFID.getID()))
 			return -1;
+		
 		INode iNode = fileMap.get(dFID.getID());
 		ArrayList<Integer> blockMap = iNode.getBlockMap();
 		int index = 0;
@@ -146,8 +150,10 @@ public class MyDFS extends DFS {
 			int index2 = 0;
 			DBuffer dBuffer = myDBufferCache.getBlock(blockID);
 			byte[] buffer2 = dBuffer.getBuffer();
-			while(index2<Constants.BLOCK_SIZE && index>count){
+			while(index2<Constants.BLOCK_SIZE && index<count){
 				buffer2[index2] = buffer[index+startOffset];
+				index++;
+				index2++;
 			}
 			if(index>count)
 				break;
@@ -159,8 +165,10 @@ public class MyDFS extends DFS {
 			int index2 = 0;
 			DBuffer dBuffer = myDBufferCache.getBlock(next);
 			byte[] buffer2 = dBuffer.getBuffer();
-			while(index2<Constants.BLOCK_SIZE && index>count){
+			while(index2<Constants.BLOCK_SIZE && index<count){
 				buffer2[index2] = buffer[index+startOffset];
+				index++;
+				index2++;
 			}
 		}
 		return index;

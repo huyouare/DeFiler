@@ -28,7 +28,7 @@ public class FileMaker implements Runnable{
 		BufferedImage originalImage = null;
 		
 		try {
-			originalImage = ImageIO.read(new File("/Users/michaelogez/documents/workspace/WillDFiler/src/tests/Argentina.png"));
+			originalImage = ImageIO.read(new File("image.png"));
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();

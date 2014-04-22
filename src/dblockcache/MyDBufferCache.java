@@ -18,9 +18,10 @@ public class MyDBufferCache extends DBufferCache {
 	 * Constructor: allocates a cacheSize number of cache blocks, each
 	 * containing BLOCK-size bytes data, in memory
 	 */
-	public MyDBufferCache(int cacheSize, VirtualDisk myVD) {
+	public MyDBufferCache(int cacheSize, MyVirtualDisk myVD) {
 		super(cacheSize);
-		myVD = myVD;
+		System.out.println(this.cacheSize);
+		this.myVD = myVD;
 	}
 
 	@Override
@@ -37,6 +38,8 @@ public class MyDBufferCache extends DBufferCache {
 		}
 		else{
 			if(blockIDQueue.size()==this.cacheSize){
+				System.out.println(blockIDQueue.size());
+				System.out.println(blockIDQueue.size());
 				int id = blockIDQueue.remove();
 				dBufferMap.remove(id);
 			}

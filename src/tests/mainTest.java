@@ -10,7 +10,6 @@ public class mainTest {
 		for(int i = 0; i<1; i++){
 			(new Thread(new FileMaker(fileSystem))).start();
 		}
-
 	}
 
 }
