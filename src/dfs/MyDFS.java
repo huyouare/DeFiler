@@ -5,6 +5,7 @@ import common.Constants;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -50,7 +51,7 @@ public class MyDFS extends DFS {
 			e.printStackTrace();
 		}
 		
-		myDBufferCache = new MyDBufferCache(Constants.NUM_OF_CACHE_BLOCKS*Constants.BLOCK_SIZE, myVD);
+		myDBufferCache = new MyDBufferCache(Constants.NUM_OF_CACHE_BLOCKS * Constants.BLOCK_SIZE, myVD);
 		System.out.println(myDBufferCache.cacheSize);
 	}
 	
@@ -80,10 +81,39 @@ public class MyDFS extends DFS {
 			}
 		}
 		fileMap = new HashMap<Integer, INode>();
+		
+		for(int i=1; i<numINodeBlocks+1; i++){
+			DBuffer dBuffer = myDBufferCache.getBlock(i);
+			byte[] buffer = dBuffer.getBuffer();
+//			byte[] id = new byte[4];
+//			byte[] size = new byte[4];
+//			for(int j=0; j<4; j++){
+//				id[j] = buffer[j];
+//				size[j] = buffer[j+4];
+//			}
+//			byte[] blockMap = new byte[Constants.MAX_BLOCKS_PER_FILE];
+//			for(int j=0; i<Constants.MAX_BLOCKS_PER_FILE; j++){
+//				blockMap[j] = buffer[j+8];
+//			}
+			int idInt = ByteBuffer.wrap(buffer, 0, 4).getInt();
+			int sizeInt = ByteBuffer.wrap(buffer, 4, 4).getInt();
+			Integer[] blockMap = new Integer[Constants.MAX_BLOCKS_PER_FILE];
+			for(int j=0; j<Constants.MAX_BLOCKS_PER_FILE; j++){
+				blockMap[j] = ByteBuffer.wrap(buffer, 4*j+8, 4).getInt();
+			}
+			DFileID dfid = new DFileID(idInt);
+			INode dfile = new INode(sizeInt, dfid);
+			ArrayList<Integer> blockMapList = new ArrayList<Integer>(Arrays.asList(blockMap));
+			dfile.setBlockMap(blockMapList);
+			fileMap.put(i, dfile);
+		}
+		
 	}
 	
 	public void checkDFiles(){
-		
+		//Check sizes of inodes
+		//Check valid blockIDs
+		//Check for collisions
 	}
 
 	@Override
@@ -93,7 +123,23 @@ public class MyDFS extends DFS {
 		synchronized(fileMap){
 			fileMap.put(dfid.getID(), new INode(0, dfid));
 		}
+		
+		saveToDisk(fileMap.get(dfid.getID()));
 		return dfid;
+	}
+	
+	public void saveToDisk(INode inode){
+		byte[] buffer = new byte[Constants.INODE_SIZE];
+		byte[] arr1 = ByteBuffer.allocate(4).putInt(inode.getSize()).array();
+		byte[] arr2 = ByteBuffer.allocate(4).putInt(inode.getDFileID().getID()).array();
+		ByteBuffer target = ByteBuffer.wrap(arr1);
+		target.put(arr2);
+		ArrayList<Integer> blockMap = inode.getBlockMap();
+		for(int i:blockMap){
+			target.putInt(i);
+		}
+		target.get(buffer, 0, buffer.length);
+		System.out.println(target);
 	}
 
 	@Override
@@ -124,6 +170,7 @@ public class MyDFS extends DFS {
 			if(buffer==null) return -1;
 			System.out.println("DFileID: " + dFID.getID());
 			INode iNode = fileMap.get(dFID.getID());
+			int size = iNode.getSize();
 			if(iNode==null) return -1;
 			ArrayList<Integer> blockMap = iNode.getBlockMap();
 			
@@ -132,12 +179,12 @@ public class MyDFS extends DFS {
 				int index2 = 0;
 				DBuffer dBuffer = myDBufferCache.getBlock(blockID);
 				byte[] buffer2 = dBuffer.getBuffer();
-				while(index2<Constants.BLOCK_SIZE && index<count){
+				while(index2<Constants.BLOCK_SIZE && index<count && index<size){
 					buffer[index+startOffset] = buffer2[index2];
 					index++;
 					index2++;
 				}
-				if(index>count)
+				if(index>=count || index>=size)
 					break;
 			}
 			return index;
@@ -171,7 +218,7 @@ public class MyDFS extends DFS {
 					index++;
 					index2++;
 				}
-				if(index>count)
+				if(index>=count)
 					break;
 			}
 			
