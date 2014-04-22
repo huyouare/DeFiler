@@ -88,7 +88,12 @@ public class MyDFS extends DFS {
 
 	@Override
 	public void destroyDFile(DFileID dFID) {
+		ArrayList<Integer> blockMapItems = fileMap.get(dFID).getBlockMap(); 
+		for (Integer block: blockMapItems){
+			freeList[block]=true;
+		}
 		fileMap.remove(dFID.getID());
+
 		//FREE ALL BLOCKS
 		
 //		for (int id : fileMap.keySet()){
