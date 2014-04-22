@@ -28,7 +28,8 @@ public class MyVirtualDisk extends VirtualDisk implements Runnable{
 	public void startRequest(DBuffer buf, DiskOperationType operation){
 		synchronized(requestQueue){
 			Request r = new Request(buf, operation);
-			requestQueue.add(r);
+			while(!requestQueue.offer(r)) 
+				continue;
 			requestQueue.notifyAll();
 		}
 	}
