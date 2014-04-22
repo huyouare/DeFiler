@@ -11,7 +11,8 @@ import dfs.MyDFS;
 import common.DFileID;
 
 public class TestClient implements Runnable {
-    private static final int NUM_WORKERS = 1;
+
+    private static final int NUM_WORKERS = 2;
 
     DFS dfiler;
     DFileID conc;
@@ -102,7 +103,7 @@ public class TestClient implements Runnable {
         
         // Test concurrent access 3 times
         for (int i = 0; i < 3; i++) {
-            Print("Write", "Concurrent " + i);
+            Print("Write SHUTDOWN " + clientID + "" + i, "Concurrent " + i);
             WriteTest(conc, "SHUT DOWN " + clientID + "" + i);
             Print("Read Concurrent " + i, ReadTest(conc));
         }
@@ -159,7 +160,9 @@ public class TestClient implements Runnable {
             TestClient tc = new TestClient(dfiler, file, i);
             Thread f = new Thread(tc);
             clients.add(f);
-            f.start();
+        }
+        for(Thread f: clients){
+        	f.start();
         }
         // Sync files to disk
         for (Thread tc : clients) {
