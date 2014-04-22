@@ -39,7 +39,7 @@ public class MyDFS extends DFS {
 	
 	public MyDFS(){
 		availableFileIDs = new LinkedList<Integer>();
-		for (int i=1; i<512; i++){
+		for (int i=1; i<=Constants.MAX_DFILES; i++){
 			availableFileIDs.add(i);
 		}
 		
@@ -53,6 +53,11 @@ public class MyDFS extends DFS {
 		
 		myDBufferCache = new MyDBufferCache(Constants.NUM_OF_CACHE_BLOCKS * Constants.BLOCK_SIZE, myVD);
 		System.out.println(myDBufferCache.cacheSize);
+	}
+	
+	public MyDFS(MyVirtualDisk vd){
+		this();
+		myVD = vd;
 	}
 	
 	public int getNextFree(){
@@ -82,38 +87,77 @@ public class MyDFS extends DFS {
 		}
 		fileMap = new HashMap<Integer, INode>();
 		
-		for(int i=1; i<numINodeBlocks+1; i++){
-			DBuffer dBuffer = myDBufferCache.getBlock(i);
-			byte[] buffer = dBuffer.getBuffer();
-//			byte[] id = new byte[4];
-//			byte[] size = new byte[4];
-//			for(int j=0; j<4; j++){
-//				id[j] = buffer[j];
-//				size[j] = buffer[j+4];
-//			}
-//			byte[] blockMap = new byte[Constants.MAX_BLOCKS_PER_FILE];
-//			for(int j=0; i<Constants.MAX_BLOCKS_PER_FILE; j++){
-//				blockMap[j] = buffer[j+8];
-//			}
-			int idInt = ByteBuffer.wrap(buffer, 0, 4).getInt();
-			int sizeInt = ByteBuffer.wrap(buffer, 4, 4).getInt();
-			Integer[] blockMap = new Integer[Constants.MAX_BLOCKS_PER_FILE];
-			for(int j=0; j<Constants.MAX_BLOCKS_PER_FILE; j++){
-				blockMap[j] = ByteBuffer.wrap(buffer, 4*j+8, 4).getInt();
-			}
-			DFileID dfid = new DFileID(idInt);
-			INode dfile = new INode(sizeInt, dfid);
-			ArrayList<Integer> blockMapList = new ArrayList<Integer>(Arrays.asList(blockMap));
-			dfile.setBlockMap(blockMapList);
-			fileMap.put(i, dfile);
-		}
-		
+		checkDisk();
 	}
 	
-	public void checkDFiles(){
+	public void checkDisk(){
 		//Check sizes of inodes
 		//Check valid blockIDs
 		//Check for collisions
+		
+		boolean[] blockIDFound = new boolean[Constants.NUM_OF_BLOCKS];
+		
+		for(int i=1; i<Constants.MAX_DFILES+1; i++){
+			DBuffer dBuffer = myDBufferCache.getBlock(i);
+			byte[] buffer = dBuffer.getBuffer();
+
+			int idInt = ByteBuffer.wrap(buffer, 0, 4).getInt();
+			
+			//CHECK UNIQUE INODES
+			if(i!=idInt && idInt!=0){
+				try {
+					throw new Exception("Invalid fileID");
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			
+			//CHECK FileID Bounds
+			if(idInt<0 || idInt>Constants.MAX_DFILES){
+				try {
+					throw new Exception("fileID out of bounds");
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			
+			if(idInt!=0){
+				int sizeInt = ByteBuffer.wrap(buffer, 4, 4).getInt();
+				
+				Integer[] blockMap = new Integer[Constants.MAX_BLOCKS_PER_FILE];
+				for(int j=0; j<Constants.MAX_BLOCKS_PER_FILE; j++){
+					blockMap[j] = ByteBuffer.wrap(buffer, 4*j+8, 4).getInt();
+					
+					//CHECK BlockID Bounds
+					if(blockMap[j]<numINodeBlocks+1 || blockMap[j]>Constants.NUM_OF_BLOCKS){
+						try {
+							throw new Exception("blockID out of bounds");
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+					
+					//CHECK BlockID Uniqueness
+					if(blockIDFound[ blockMap[j] ]){
+						try {
+							throw new Exception("blockID already used");
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+					
+					blockIDFound[ blockMap[j] ] = true;
+					
+				}
+				ArrayList<Integer> blockMapList = new ArrayList<Integer>(Arrays.asList(blockMap));
+				
+				DFileID dfid = new DFileID(idInt);
+				INode dfile = new INode(sizeInt, dfid);
+				
+				dfile.setBlockMap(blockMapList);
+				fileMap.put(i, dfile);
+			}
+		}
 	}
 
 	@Override
@@ -134,12 +178,17 @@ public class MyDFS extends DFS {
 		byte[] arr2 = ByteBuffer.allocate(4).putInt(inode.getDFileID().getID()).array();
 		ByteBuffer target = ByteBuffer.wrap(arr1);
 		target.put(arr2);
+		
 		ArrayList<Integer> blockMap = inode.getBlockMap();
 		for(int i:blockMap){
 			target.putInt(i);
 		}
-		target.get(buffer, 0, buffer.length);
-		System.out.println(target);
+		
+		byte[] bytes = new byte[target.remaining()];
+		target.get(bytes, 0, bytes.length);
+		target.clear();
+		target.get(buffer, 0, target.capacity());
+		System.out.println(buffer.toString());
 	}
 
 	@Override
