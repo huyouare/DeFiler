@@ -46,20 +46,20 @@ public class MyDBufferCache extends DBufferCache {
 			blockIDQueue.add(blockID);
 		}
 		synchronized(dbuffer){
-			//dbuffer.setHold();
+			dbuffer.setHold();
+			return dbuffer;
 		}
-		return dbuffer;
 	}
 
 	@Override
 	/* Release the buffer so that others waiting on it can use it */
 	public void releaseBlock(DBuffer buf) {
-//		synchronized(buf){
-//			buf.removeHold();
-//			notifyAll();
-//		}
-		dBufferMap.remove(buf.getBlockID());
-		blockIDQueue.remove(buf.getBlockID());
+		synchronized(buf){
+			dBufferMap.remove(buf.getBlockID());
+			blockIDQueue.remove(buf.getBlockID());
+			buf.removeHold();
+			notifyAll();
+		}
 	}
 
 	@Override

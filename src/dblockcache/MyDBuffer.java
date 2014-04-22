@@ -15,6 +15,7 @@ public class MyDBuffer extends DBuffer {
 	private MyVirtualDisk myVD;
 	private boolean isValid;
 	private boolean isClean;
+	private boolean hold;
 	
 	public MyDBuffer(int id, MyVirtualDisk vd) {
 		blockID = id;
@@ -23,12 +24,14 @@ public class MyDBuffer extends DBuffer {
 		myVD = vd;
 		isValid = false;
 		isClean = false;
+		hold = false;
 	}
 	
 	@Override
 	/* Start an asynchronous fetch of associated block from the volume */
 	public synchronized void startFetch() {
 		ioComplete = false;
+		
 		myVD.startRequest(this, DiskOperationType.READ);
 	}
 
@@ -36,6 +39,7 @@ public class MyDBuffer extends DBuffer {
 	/* Start an asynchronous write of buffer contents to block on volume */
 	public synchronized void startPush() {
 		ioComplete = false;
+		
 		myVD.startRequest(this, DiskOperationType.WRITE);
 	}
 
@@ -80,7 +84,7 @@ public class MyDBuffer extends DBuffer {
 	@Override
 	/* Check if buffer is evictable: not evictable if I/O in progress, or buffer is held */
 	public boolean isBusy() {
-		return !ioComplete;
+		return (!ioComplete || hold);
 	}
 
 	@Override
@@ -126,11 +130,9 @@ public class MyDBuffer extends DBuffer {
 			this.buffer[i] = buffer[i+startOffset];
 			byteCount++;
 		}
-		synchronized(this){
-			isClean = false;
-			isValid = true;
-			notifyAll();
-		}
+		isClean = false;
+		isValid = true;
+		notifyAll();
 		return byteCount;
 	}
 
@@ -155,6 +157,14 @@ public class MyDBuffer extends DBuffer {
 	/* An upcall from VirtualDisk layer to fetch the buffer associated with DBuffer object*/
 	public byte[] getBuffer() {
 		return this.buffer;
+	}
+	
+	public synchronized void setHold(){
+		hold = true;
+	}
+	
+	public synchronized void removeHold(){
+		hold = false;
 	}
 
 }

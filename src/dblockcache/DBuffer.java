@@ -47,4 +47,9 @@ public abstract class DBuffer {
 	
 	/* An upcall from VirtualDisk layer to fetch the buffer associated with DBuffer object*/
 	public abstract byte[] getBuffer(); 
+	
+	public abstract void setHold();
+	
+	public abstract void removeHold();
+	
 }
