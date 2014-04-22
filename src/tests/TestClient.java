@@ -65,15 +65,15 @@ public class TestClient implements Runnable {
     private void extTest () {
         Print("Started", "Running");
 
-        Print("Write INITIAL", "Concurrent " + conc.getdFID());
+        Print("Write INITIAL", "Concurrent " + conc.getID());
         WriteTest(conc, "INTIAL");
         Print("Read Concurrent", ReadTest(conc));
-        Print("Write INITIALS", "Concurrent " + conc.getdFID());
+        Print("Write INITIALS", "Concurrent " + conc.getID());
         WriteTest(conc, "INTIALS");
 
         DFileID nf = dfiler.createDFile();
 
-        Print("Created DFile", Integer.toString(nf.get_dFID()));
+        Print("Created DFile", Integer.toString(nf.getID()));
         Print("Writing", "Test Two");
         WriteTest(nf, "TEST TWO");
         Print("Read", ReadTest(nf));
@@ -95,7 +95,7 @@ public class TestClient implements Runnable {
         Print("Read Long Concurrent", ReadLong(conc));
     }
 
-    private void concTest () {
+    private void concTest() {
         DFileID file = new DFileID(clientID);
         // DFileID file = dfiler.createDFile();
         WriteTest(file, "CLIENT " + clientID + 1);
@@ -115,10 +115,10 @@ public class TestClient implements Runnable {
         System.out.println("Initializing DFS");
         MyDFS dfiler = new MyDFS();
         dfiler.init();
-        dfiler.createDFile();
+//        dfiler.createDFile();
         System.out.println("Initialized");
-        // DFileID file = dfiler.createDFile();
-        DFileID file = new DFileID(4);
+         DFileID file = dfiler.createDFile();
+//        DFileID file = new DFileID(4);
 
         ArrayList<Thread> clients = new ArrayList<Thread>();
         // Run NUM_WORKERS threads

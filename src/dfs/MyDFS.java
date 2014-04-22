@@ -112,6 +112,7 @@ public class MyDFS extends DFS {
 		if(startOffset<0)
 			return -1;
 		//More corner cases
+		System.out.println("DFileID: " + dFID.getID());
 		INode iNode = fileMap.get(dFID.getID());
 		ArrayList<Integer> blockMap = iNode.getBlockMap();
 		int index = 0;
