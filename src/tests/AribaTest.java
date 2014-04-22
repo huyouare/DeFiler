@@ -21,18 +21,16 @@ public class AribaTest implements Runnable{
 		this.dfs=dfs;
 		this.clientID=id;
 		
-		
 	}
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
-		
+		extTest();
 	}
 	
-    private void extTest () {
+    private void extTest() {
 
 	 Print("Started", "Running");
-
+	 System.out.println("sdf");
      Print("Write INITIAL", "Concurrent " + conc.getID());
      WriteTest(conc, "INTIAL");
      Print("Read Concurrent", ReadTest(conc));
@@ -50,11 +48,11 @@ public class AribaTest implements Runnable{
      WriteTest(nf, "TEST PART");
     }
      
-    private void Print (String op, String mes) {
+    private void Print(String op, String mes) {
         System.out.println("Client #" + clientID + "\t Op: " + op + "\t \t "
                 + mes);
     }
-	private void WriteTest (DFileID f, String t) {
+	private void WriteTest(DFileID f, String t) {
         byte[] data = t.getBytes();
         dfs.write(f, data, 0, data.length);
     }
@@ -80,19 +78,22 @@ public class AribaTest implements Runnable{
         return new String(read).trim();
     }
 	
-	public static void Main() throws FileNotFoundException, IOException{
+	public static void main(String args[]) throws FileNotFoundException, IOException{
 
 		MyVirtualDisk vdf= new MyVirtualDisk();
+		Thread t = new Thread(vdf);
+		t.start();
 
 		ArrayList<Thread> clients = new ArrayList<Thread>();
-  // Run NUM_WORKERS threads
+		// Run NUM_WORKERS threads
 		for (int i = 0; i < 3; i++) {
 			MyDFS currDFS= new MyDFS(vdf);
+			currDFS.init();
 			DFileID file = currDFS.createDFile();
 
 			AribaTest tc = new AribaTest(currDFS, file, i);
 			Thread f = new Thread(tc);
-			clients.add(f);
+			f.start();
 		}
-}
+	}
 }
